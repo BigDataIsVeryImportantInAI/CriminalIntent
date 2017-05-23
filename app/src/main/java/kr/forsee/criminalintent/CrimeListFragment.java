@@ -1,5 +1,6 @@
 package kr.forsee.criminalintent;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -20,6 +21,7 @@ import java.util.List;
 
 public class CrimeListFragment extends Fragment {
 
+    private int mClickedPosition = -1;
     private RecyclerView mCrimeRecyclerView;
     private CrimeAdapter mAdapter;
 
@@ -39,31 +41,43 @@ public class CrimeListFragment extends Fragment {
         CrimeLab crimeLab = CrimeLab.get(getActivity());
         List<Crime> crimes = crimeLab.getCrimes();
 
-        mAdapter = new CrimeAdapter(crimes);
-        mCrimeRecyclerView.setAdapter(mAdapter);
+        if(mAdapter == null) {
+            mAdapter = new CrimeAdapter(crimes);
+            mCrimeRecyclerView.setAdapter(mAdapter);
+        } else {
+            if (mClickedPosition == -1) {
+                mAdapter.notifyDataSetChanged();
+            } else {
+                mAdapter.notifyItemChanged(mClickedPosition);
+                mClickedPosition = -1;
+            }
+        }
+
     }
 
-
-
-
-
+    @Override
+    public void onResume() {
+        super.onResume();
+        updateUI();
+    }
 
     private class CrimeHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
         private Crime mCrime;
         private TextView mTitleTextView;
         private TextView mDateTextView;
         private CheckBox mSolvedCheckBox;
+        private int mPosition;
 
         public CrimeHolder(View itemView) {
             super(itemView);
             itemView.setOnClickListener(this);
-
             mTitleTextView = (TextView) itemView.findViewById(R.id.list_item_crime_title_text_view);
             mDateTextView = (TextView) itemView.findViewById(R.id.list_item_crime_date_text_view);
             mSolvedCheckBox = (CheckBox) itemView.findViewById(R.id.list_item_crime_solved_check_box);
         }
-        public void bindCrime(Crime crime) {
+        public void bindCrime(Crime crime, int position) {
             mCrime = crime;
+            mPosition = position;
             mTitleTextView.setText(mCrime.getTitle());
             mDateTextView.setText(mCrime.getDate().toString());
             mSolvedCheckBox.setChecked(mCrime.isSolved());
@@ -71,7 +85,9 @@ public class CrimeListFragment extends Fragment {
 
         @Override
         public void onClick(View v) {
-            Toast.makeText(getActivity(), mCrime.getTitle() + " 선택됨!", Toast.LENGTH_SHORT).show();
+            mClickedPosition = mPosition;
+            Intent intent = CrimePagerActivity.newIntent(getActivity(), mCrime.getId());
+            startActivity(intent);
         }
     }
     private class CrimeAdapter extends RecyclerView.Adapter<CrimeHolder> {
@@ -92,7 +108,7 @@ public class CrimeListFragment extends Fragment {
         @Override
         public void onBindViewHolder(CrimeHolder holder, int position) {
             Crime crime = mCrimes.get(position);
-            holder.bindCrime(crime);
+            holder.bindCrime(crime, position);
         }
 
         @Override
